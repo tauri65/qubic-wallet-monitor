@@ -74,6 +74,8 @@ h2 { font-size: 15px; margin: 14px 0 8px; }
 .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .kpi .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .kpi .l { font-size: 12px; color: var(--muted); }
+.kpi.tap { cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; }
+.kpi.tap .l::after { content: ' ⇄'; color: var(--accent); }
 footer { margin-top: 16px; }
 a.idlink { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
 a.idlink:hover { color: var(--accent); }
@@ -150,7 +152,7 @@ button.ren:hover { color: var(--accent); }
         <label class="grow">RPC <input type="text" id="rpc" value="https://rpc.qubic.org" autocomplete="off"></label>
         <button id="testRpc">Test</button>
       </div>
-      <p class="hint">Uses <code>/v1/tick-info</code>, <code>/v1/balances/{id}</code>, <code>/v1/assets/{id}/owned</code> and <code>/possessed</code>. Each refresh sends every ID in the list to this server.</p>
+      <p class="hint">Uses <code>/v1/tick-info</code>, <code>/v1/latest-stats</code> (QU price), <code>/v1/balances/{id}</code>, <code>/v1/assets/{id}/owned</code> and <code>/possessed</code>. Each refresh sends every ID in the list to this server. If the RPC gives no price, it comes from CoinGecko (no IDs sent).</p>
       <div id="rpcResult"></div>
     </details>
     </div>
@@ -186,6 +188,7 @@ const S = {
   targets: [], last: [], base: [], err: [], lastChanges: [], lastMove: [],
   events: [], warnings: [], busy: false, updated: '', took: 0, baseTime: '',
   tab: 'summary', sel: -1, unseen: 0, gen: 0, timer: null, nextAt: 0,
+  price: null, priceSrc: '', unit: 'QU', // price: USD per 1 QU (shown as USDT)
 };
 
 // ---------- helpers ----------
@@ -193,6 +196,25 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;'
 const fmt = (v) => Number(v).toLocaleString('en-US');
 const fmtD = (v) => (v > 0 ? '+' : '') + fmt(v);
 const cls = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : '');
+// USDT = QU x price (USD per QU); 2 decimals from 1 up, else 4 significant digits
+const fmtUsdt = (v) => Math.abs(v) >= 1
+  ? v.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})
+  : v.toLocaleString('en-US', {maximumSignificantDigits: 4});
+const inUsdt = () => S.unit === 'USDT' && S.price > 0;
+// Price is kept per QU; shown per billion QUBIC, e.g. "$407 / bQUBIC"
+const fmtPriceB = (p) => {
+  const b = p * 1e9;
+  return '$' + b.toLocaleString('en-US', b >= 100 ? {maximumFractionDigits: 0} : {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' / bQUBIC';
+};
+// Total / since-start KPI pair, tap to switch QU <-> USDT
+function moneyKpis(title, qu, delta) {
+  const u = inUsdt();
+  const val = u ? fmtUsdt(qu * S.price) : fmt(qu);
+  const dv = u ? (delta ? (delta > 0 ? '+' : '') + fmtUsdt(delta * S.price) : '0') : (delta ? fmtD(delta) : '0');
+  const tip = S.price > 0 ? fmtPriceB(S.price) + ' (' + S.priceSrc + ')' : 'price not loaded yet';
+  return '<div class="kpi tap" data-unit title="' + esc(tip) + '"><div class="l">' + title + ' ' + (u ? 'USDT' : 'QU') + '</div><div class="v">' + val + '</div></div>' +
+    '<div class="kpi tap" data-unit title="' + esc(tip) + '"><div class="l">Since start ' + (u ? 'USDT' : 'QU') + '</div><div class="v ' + cls(delta) + '">' + dv + '</div></div>';
+}
 const shortId = (id) => id.length <= 14 ? id : id.slice(0, 6) + '…' + id.slice(-6);
 const isSc = (issuer) => issuer === ZERO_ID;
 const contractText = (cs) => cs.map((c) => c + (CONTRACTS[c] ? ' ' + CONTRACTS[c] : '')).join(', ');
@@ -244,6 +266,24 @@ async function fetchTick() {
   const j = await getJson('/v1/tick-info');
   const ti = j.tickInfo || j;
   return {tick: Number(ti.tick || 0), epoch: Number(ti.epoch || 0)};
+}
+
+// QU price in USD: the RPC's network stats (what the explorer shows), else CoinGecko
+async function fetchPrice() {
+  try {
+    const j = await getJson('/v1/latest-stats');
+    const p = Number((j.data || j).price);
+    if (p > 0) return {price: p, src: 'RPC latest-stats'};
+  } catch (e) { /* fall back */ }
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=qubic-network&vs_currencies=usd',
+      {signal: ctl.signal, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer'});
+    const p = Number(((await r.json())['qubic-network'] || {}).usd);
+    if (p > 0) return {price: p, src: 'CoinGecko'};
+  } finally { clearTimeout(t); }
+  throw new Error('no price');
 }
 
 async function fetchId(id) {
@@ -308,6 +348,7 @@ async function refresh() {
   S.busy = true; render();
   const gen = S.gen, t0 = performance.now(), targets = S.targets.slice();
   fetchTick().then((ti) => { $('tick').textContent = fmt(ti.tick); $('epoch').textContent = ti.epoch; }).catch(() => {});
+  fetchPrice().then((p) => { S.price = p.price; S.priceSrc = p.src + ' at ' + now(); render(); }).catch(() => {});
   const results = new Array(targets.length);
   let next = 0;
   const worker = async () => {
@@ -372,7 +413,7 @@ function applyList(text, quiet) {
 function saveIfRemembered() {
   try {
     if ($('remember').checked)
-      localStorage.setItem(STORE_KEY, JSON.stringify({ids: $('ids').value, rpc: $('rpc').value, interval: $('interval').value, all: $('allTokens').checked}));
+      localStorage.setItem(STORE_KEY, JSON.stringify({ids: $('ids').value, rpc: $('rpc').value, interval: $('interval').value, all: $('allTokens').checked, unit: S.unit}));
     else localStorage.removeItem(STORE_KEY);
   } catch (e) { /* storage blocked: memory only */ }
 }
@@ -435,8 +476,7 @@ function viewSummary() {
       '</span><span class="bal">' + (d && d.ok ? fmt(d.balance) : '-') + '</span></div>' +
       '<div class="meta"><span class="nm">' + idLink(t.id) + ' ' + info + '</span>' + st + '</div></div>';
   }).join('');
-  return '<div class="kpis"><div class="kpi"><div class="l">Total QU</div><div class="v">' + fmt(total) + '</div></div>' +
-    '<div class="kpi"><div class="l">Since start</div><div class="v ' + cls(totalDelta) + '">' + (totalDelta ? fmtD(totalDelta) : '0') + '</div></div>' +
+  return '<div class="kpis">' + moneyKpis('Total', total, totalDelta) +
     '<div class="kpi"><div class="l">IDs ok</div><div class="v">' + ok + '/' + S.targets.length + '</div></div></div>' +
     '<div class="cards">' + cards + '</div><div class="wide-only">' +
     table(['#', 'Label', 'ID', 'Balance (QU)', 'Since start', 'Last QU move', $('allTokens').checked ? 'Tokens' : 'SC shares', 'Status'], rows, [3, 4, 5, 6]) +
@@ -479,8 +519,7 @@ function viewTotals() {
       cell(fmt(h.possessed), 'n') + cell(dl.text, 'n ' + dl.c) + cell(cur.holders[k] || 0, 'n') + cell(esc(contractText(h.contracts))) + '</tr>');
   });
   const qd = curB.balance - base.balance;
-  return '<div class="kpis"><div class="kpi"><div class="l">Total QU, all IDs</div><div class="v">' + fmt(cur.balance) + '</div></div>' +
-    '<div class="kpi"><div class="l">Since start</div><div class="v ' + cls(qd) + '">' + (qd ? fmtD(qd) : '0') + '</div></div>' +
+  return '<div class="kpis">' + moneyKpis('Total', cur.balance, qd) +
     '<div class="kpi"><div class="l">IDs</div><div class="v">' + cur.ids + '/' + S.targets.length + '</div></div></div>' +
     '<h2>' + ($('allTokens').checked ? 'Shares and tokens, all IDs' : 'SC shares, all IDs') + '</h2>' +
     (rows.length ? table(['Asset', 'Issuer', 'Owned', 'Possessed', 'Since start', 'Holders', 'Managed by'], rows, [2, 3, 4, 5]) : '<div class="panel empty">None.</div>') +
@@ -506,10 +545,11 @@ function viewChanges() {
 
 function render() {
   // header
-  let st = !S.targets.length ? 'no IDs' : S.updated ? 'updated ' + S.updated : 'loading';
+  let st = !S.targets.length ? 'no IDs' : S.updated ? S.updated : 'loading';
+  if (S.price > 0) st = fmtPriceB(S.price) + ' · ' + st;
   $('state').title = S.updated ? 'last refresh took ' + S.took.toFixed(1) + ' s' : '';
   if (S.busy) st += ' · refreshing…';
-  else if (S.nextAt) st += ' · next in ' + Math.max(0, Math.round((S.nextAt - Date.now()) / 1000)) + ' s';
+  else if (S.nextAt) st += ' · next ' + Math.max(0, Math.round((S.nextAt - Date.now()) / 1000)) + 's';
   $('state').textContent = st;
   $('refresh').disabled = S.busy || !S.targets.length;
   const every = $('interval').selectedOptions[0].text;
@@ -564,6 +604,12 @@ $('reset').onclick = () => {
 $('filter').onchange = (e) => { S.sel = Number(e.target.value); render(); };
 // Rename: the new label is written back into the list text (so links and "Remember" keep it)
 $('view').addEventListener('click', (e) => {
+  if (e.target.closest('[data-unit]')) {
+    if (!(S.price > 0)) return; // no price yet: stay in QU
+    S.unit = S.unit === 'QU' ? 'USDT' : 'QU';
+    saveIfRemembered();
+    return render();
+  }
   const b = e.target.closest('button.ren');
   if (!b) return;
   const t = S.targets[Number(b.dataset.ren)];
@@ -610,6 +656,7 @@ setInterval(() => { if (!document.hidden) render(); }, 1000);
     if (saved.rpc) $('rpc').value = saved.rpc;
     if (saved.interval !== undefined) $('interval').value = saved.interval;
     $('allTokens').checked = !!saved.all;
+    if (saved.unit === 'USDT') S.unit = 'USDT';
   }
   const q = new URLSearchParams(location.search);
   if (q.get('rpc')) $('rpc').value = q.get('rpc');
