@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Qubic Wallet Monitor">
+<meta name="theme-color" content="#0f1419">
+<title>Qubic Wallet Monitor</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f6f7f9; --panel: #ffffff; --text: #16181d; --muted: #667085; --line: #e3e6eb;
+  --accent: #0e7490; --accent-soft: #e0f2f7; --up: #12805c; --down: #c0362c; --warn: #a15c00;
+  --changed: #fff6db; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1419; --panel: #171d24; --text: #e6e9ee; --muted: #8b95a5; --line: #2a323c;
+    --accent: #38bdf8; --accent-soft: #0c2a38; --up: #3ecf8e; --down: #ff6b5e; --warn: #f5b84a;
+    --changed: #2b2614;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 12px; }
+header h1 { font-size: 18px; margin: 0; flex: 1 1 auto; }
+.pill { font-size: 13px; color: var(--muted); }
+.pill b { color: var(--text); font-weight: 600; }
+button, select, input[type=text], textarea {
+  font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+}
+button { padding: 7px 12px; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:disabled { opacity: .5; }
+select, input[type=text] { padding: 6px 8px; }
+textarea { width: 100%; min-height: 120px; padding: 8px; font: 13px/1.4 var(--mono); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+details > summary { cursor: pointer; font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
+.row label { display: inline-flex; align-items: center; gap: 6px; }
+.grow { flex: 1 1 220px; min-width: 0; }
+.grow input { width: 100%; }
+.hint { color: var(--muted); font-size: 13px; }
+.warn { color: var(--warn); font-size: 13px; }
+.err { color: var(--down); font-size: 13px; }
+nav { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+nav button.tab { border-radius: 999px; }
+nav button.tab.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+nav .sp { flex: 1; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); position: sticky; top: 0; background: var(--panel); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr.total td { font-weight: 700; border-top: 2px solid var(--line); }
+tr.changed td { background: var(--changed); }
+.id { font-family: var(--mono); font-size: 12.5px; }
+.up { color: var(--up); } .down { color: var(--down); } .sc { color: var(--accent); font-weight: 600; }
+.badge { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 12px; border: 1px solid currentColor; }
+.empty { padding: 18px; color: var(--muted); }
+h2 { font-size: 15px; margin: 14px 0 8px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.kpi .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kpi .l { font-size: 12px; color: var(--muted); }
+footer { margin-top: 16px; }
+.cards { display: none; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+.card.changed { background: var(--changed); }
+.card .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.card .bal { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.card .meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); margin-top: 4px; }
+.card .meta b { font-weight: 600; }
+.card.total { border-width: 2px; }
+/* Phones: Summary as cards, the wide table stays for the other views */
+@media (max-width: 640px) {
+  .cards { display: block; }
+  .wide-only { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Qubic Wallet Monitor</h1>
+    <span class="pill">Tick <b id="tick">-</b> · Epoch <b id="epoch">-</b></span>
+    <span class="pill" id="state">not loaded</span>
+    <button class="primary" id="refresh">Refresh</button>
+  </header>
+
+  <div class="panel">
+    <details id="listBox">
+      <summary id="listTitle">Watch list</summary>
+      <p class="hint">One ID per line with an optional label after it, or <code>label = ID</code>; <code>#</code> starts a comment. Public IDs only, never a seed.</p>
+      <textarea id="ids" spellcheck="false" autocapitalize="characters" autocomplete="off" placeholder="# my watch list&#10;&lt;60-letter ID&gt;  main&#10;cold = &lt;60-letter ID&gt;"></textarea>
+      <div class="row">
+        <button class="primary" id="apply">Apply</button>
+        <button id="pickFile">Load file…</button>
+        <input type="file" id="file" accept=".txt,text/plain" hidden>
+        <button id="copyLink">Copy link with list</button>
+        <label><input type="checkbox" id="remember"> Remember on this device</label>
+      </div>
+      <div id="warnings"></div>
+    </details>
+    <div class="row">
+      <label>Every <select id="interval">
+        <option value="30">30 s</option><option value="60" selected>1 min</option><option value="120">2 min</option>
+        <option value="300">5 min</option><option value="0">off</option></select></label>
+      <label><input type="checkbox" id="allTokens"> All tokens (not only SC shares)</label>
+      <button id="reset">Reset changes</button>
+    </div>
+    <details style="margin-top:10px">
+      <summary class="hint">Data source</summary>
+      <div class="row">
+        <label class="grow">RPC <input type="text" id="rpc" value="https://rpc.qubic.org" autocomplete="off"></label>
+        <button id="testRpc">Test</button>
+      </div>
+      <p class="hint">Uses <code>/v1/tick-info</code>, <code>/v1/balances/{id}</code>, <code>/v1/assets/{id}/owned</code> and <code>/possessed</code>. Each refresh sends every ID in the list to this server.</p>
+      <div id="rpcResult"></div>
+    </details>
+  </div>
+
+  <nav>
+    <button class="tab on" data-tab="summary">Summary</button>
+    <button class="tab" data-tab="shares">Shares</button>
+    <button class="tab" data-tab="totals">Totals</button>
+    <button class="tab" data-tab="changes">Changes</button>
+    <span class="sp"></span>
+    <select id="filter" aria-label="ID filter"><option value="-1">All IDs</option></select>
+  </nav>
+  <main id="view"></main>
+
+  <footer class="hint">
+    <p>SC shares = assets issued by the zero ID (smart contract shares). “Since start” counts from the first load or Reset changes.
+    Changes are found by comparing each refresh with the previous one; an ID that fails to refresh keeps its last data and is never reported as a change.
+    The list, balances and change log stay in this page's memory unless “Remember on this device” is ticked.</p>
+  </footer>
+</div>
+
+<script>
+'use strict';
+const ZERO_ID = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFXIB';
+// Contract index -> name, from submodules/core/src/contract_core/contract_def.h
+const CONTRACTS = {1:"QX",2:"QUOTTERY",3:"RANDOM",4:"QUTIL",5:"MLM",6:"GQMPROP",7:"SWATCH",8:"CCF",9:"QEARN",10:"QVAULT",11:"MSVAULT",12:"QBAY",13:"QSWAP",14:"NOST",15:"QDRAW",16:"RL",17:"QBOND",18:"QIP",19:"QRAFFLE",20:"QRWA",21:"QRP",22:"QTF",23:"QDUEL",24:"PULSE",25:"VOTTUNBRIDGE",26:"QUSINO",27:"ESCROW",28:"WOLFPACK"};
+const MAX_IDS = 256, MAX_EVENTS = 500, PARALLEL = 4, TIMEOUT_MS = 15000;
+const STORE_KEY = 'qubic-wallet-monitor-v1';
+
+const $ = (id) => document.getElementById(id);
+const S = {
+  targets: [], last: [], base: [], err: [], lastChanges: [], lastMove: [],
+  events: [], warnings: [], busy: false, updated: '', took: 0, baseTime: '',
+  tab: 'summary', sel: -1, unseen: 0, gen: 0, timer: null, nextAt: 0,
+};
+
+// ---------- helpers ----------
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (v) => Number(v).toLocaleString('en-US');
+const fmtD = (v) => (v > 0 ? '+' : '') + fmt(v);
+const cls = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : '');
+const shortId = (id) => id.length <= 14 ? id : id.slice(0, 6) + '…' + id.slice(-6);
+const isSc = (issuer) => issuer === ZERO_ID;
+const contractText = (cs) => cs.map((c) => c + (CONTRACTS[c] ? ' ' + CONTRACTS[c] : '')).join(', ');
+const now = () => new Date().toLocaleTimeString('en-GB', {hour12: false});
+const shown = (issuer) => $('allTokens').checked || isSc(issuer);
+const key = (name, issuer) => name + '|' + issuer;
+
+// Format check only (60 A-Z); the checksum needs KangarooTwelve
+const isIdShape = (id) => /^[A-Z]{60}$/.test(id);
+
+function parseList(text) {
+  const targets = [], warnings = [], seen = new Set();
+  text.split(/\r?\n/).forEach((raw, n) => {
+    const line = raw.replace(/#.*/, '').trim();
+    if (!line) return;
+    // "ID label" when the line starts with an ID (the label may contain '='), else "label = ID"
+    let id, label = '';
+    const p = line.split(/\s+/), eq = line.indexOf('=');
+    if (isIdShape(p[0].toUpperCase()) || eq < 0) { id = p.shift(); label = p.join(' '); }
+    else { label = line.slice(0, eq).trim(); id = line.slice(eq + 1).trim(); }
+    id = (id || '').toUpperCase();
+    const where = 'line ' + (n + 1) + ': ';
+    if (!isIdShape(id)) { warnings.push(where + 'not a 60-letter ID, skipped'); return; }
+    if (seen.has(id)) { warnings.push(where + 'duplicate ID, skipped'); return; }
+    if (targets.length >= MAX_IDS) { warnings.push(where + 'more than ' + MAX_IDS + ' IDs, rest skipped'); return; }
+    seen.add(id);
+    targets.push({id, label: (label || 'id' + (targets.length + 1)).slice(0, 24)});
+  });
+  return {targets, warnings};
+}
+
+// ---------- data ----------
+async function getJson(path) {
+  const base = $('rpc').value.trim().replace(/\/+$/, '');
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  try {
+    const r = await fetch(base + path, {signal: ctl.signal, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer'});
+    if (!r.ok) throw new Error('HTTP ' + r.status + ' for ' + path.split('/').slice(0, 3).join('/'));
+    return await r.json();
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('timeout');
+    if (e instanceof TypeError) throw new Error('network / CORS error (server unreachable or blocks this page)');
+    throw e;
+  } finally { clearTimeout(t); }
+}
+
+async function fetchTick() {
+  const j = await getJson('/v1/tick-info');
+  const ti = j.tickInfo || j;
+  return {tick: Number(ti.tick || 0), epoch: Number(ti.epoch || 0)};
+}
+
+async function fetchId(id) {
+  const [b, o, p] = await Promise.all([
+    getJson('/v1/balances/' + id), getJson('/v1/assets/' + id + '/owned'), getJson('/v1/assets/' + id + '/possessed'),
+  ]);
+  const bal = b.balance || b;
+  if (bal.balance === undefined) throw new Error('unexpected balance reply');
+  const d = {ok: true, balance: Number(bal.balance), assets: {}};
+  const add = (ia, units, contract, owned) => {
+    if (!ia || !ia.name) return;
+    const k = key(ia.name, ia.issuerIdentity || '');
+    const h = d.assets[k] || (d.assets[k] = {name: ia.name, issuer: ia.issuerIdentity || '', owned: 0, possessed: 0, contracts: []});
+    h[owned ? 'owned' : 'possessed'] += Number(units || 0);
+    if (contract !== undefined && !h.contracts.includes(Number(contract))) h.contracts.push(Number(contract));
+    h.contracts.sort((a, b) => a - b);
+  };
+  for (const a of (o.ownedAssets || [])) {
+    const x = a.data || a;
+    add(x.issuedAsset, x.numberOfUnits, x.managingContractIndex, true);
+  }
+  for (const a of (p.possessedAssets || [])) {
+    const x = a.data || a;
+    add((x.ownedAsset && x.ownedAsset.issuedAsset) || x.issuedAsset, x.numberOfUnits, x.managingContractIndex, false);
+  }
+  return d;
+}
+
+// What moved between two good fetches of one ID
+function diff(before, after) {
+  const out = [];
+  if (!before || !before.ok || !after.ok) return out;
+  if (before.balance !== after.balance) out.push({asset: '', issuer: '', delta: after.balance - before.balance, value: after.balance, pd: 0, pv: 0});
+  const keys = new Set([...Object.keys(before.assets), ...Object.keys(after.assets)]);
+  for (const k of keys) {
+    const hb = before.assets[k] || {owned: 0, possessed: 0}, ha = after.assets[k] || {owned: 0, possessed: 0};
+    const src = after.assets[k] || before.assets[k];
+    if (hb.owned !== ha.owned || hb.possessed !== ha.possessed)
+      out.push({asset: src.name, issuer: src.issuer, delta: ha.owned - hb.owned, value: ha.owned, pd: ha.possessed - hb.possessed, pv: ha.possessed});
+  }
+  return out;
+}
+
+function totals(list, mask) {
+  const t = {balance: 0, ids: 0, assets: {}, holders: {}};
+  list.forEach((d, i) => {
+    if (!d || !d.ok || (mask && !mask[i])) return;
+    t.ids++; t.balance += d.balance;
+    for (const [k, h] of Object.entries(d.assets)) {
+      const s = t.assets[k] || (t.assets[k] = {name: h.name, issuer: h.issuer, owned: 0, possessed: 0, contracts: []});
+      s.owned += h.owned; s.possessed += h.possessed;
+      h.contracts.forEach((c) => { if (!s.contracts.includes(c)) s.contracts.push(c); });
+      s.contracts.sort((a, b) => a - b);
+      t.holders[k] = (t.holders[k] || 0) + 1;
+    }
+  });
+  return t;
+}
+
+async function refresh() {
+  if (S.busy || !S.targets.length) return;
+  S.busy = true; render();
+  const gen = S.gen, t0 = performance.now(), targets = S.targets.slice();
+  fetchTick().then((ti) => { $('tick').textContent = fmt(ti.tick); $('epoch').textContent = ti.epoch; }).catch(() => {});
+  const results = new Array(targets.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < targets.length) {
+      const i = next++;
+      try { results[i] = await fetchId(targets[i].id); }
+      catch (e) { results[i] = {ok: false, error: e.message}; }
+    }
+  };
+  await Promise.all(Array.from({length: Math.min(PARALLEL, targets.length)}, worker));
+  if (gen !== S.gen) return; // list changed meanwhile
+  S.busy = false;
+  S.updated = now();
+  S.took = (performance.now() - t0) / 1000;
+  results.forEach((d, i) => {
+    S.lastChanges[i] = [];
+    if (!d.ok) { S.err[i] = d.error; return; }
+    S.err[i] = '';
+    const ch = diff(S.last[i], d);
+    for (const c of ch) {
+      S.events.unshift({time: S.updated, id: targets[i].id, label: targets[i].label, c});
+      if (!c.asset) S.lastMove[i] = {delta: c.delta, time: S.updated};
+    }
+    S.lastChanges[i] = ch;
+    if (document.hidden) S.unseen += ch.filter((c) => !c.asset || shown(c.issuer)).length;
+    if (!S.base[i] || !S.base[i].ok) S.base[i] = d;
+    S.last[i] = d;
+  });
+  S.events.length = Math.min(S.events.length, MAX_EVENTS);
+  schedule();
+  render();
+}
+
+function schedule() {
+  clearTimeout(S.timer);
+  const every = Number($('interval').value);
+  S.nextAt = every ? Date.now() + every * 1000 : 0;
+  if (every && S.targets.length) S.timer = setTimeout(refresh, every * 1000);
+}
+
+// ---------- list handling ----------
+function applyList(text, quiet) {
+  const {targets, warnings} = parseList(text);
+  S.warnings = warnings;
+  if (!targets.length) { render(); if (!quiet) $('listBox').open = true; return; }
+  // Keep data of IDs still listed
+  const old = new Map(S.targets.map((t, i) => [t.id, i]));
+  const pick = (arr, i) => (old.has(targets[i].id) ? arr[old.get(targets[i].id)] : undefined);
+  const last = targets.map((_, i) => pick(S.last, i)), base = targets.map((_, i) => pick(S.base, i));
+  const err = targets.map((_, i) => pick(S.err, i) || ''), move = targets.map((_, i) => pick(S.lastMove, i));
+  S.gen++; S.busy = false;
+  S.targets = targets; S.last = last; S.base = base; S.err = err; S.lastMove = move;
+  S.lastChanges = targets.map(() => []);
+  if (!S.baseTime) S.baseTime = now();
+  S.sel = -1;
+  $('listBox').open = false;
+  saveIfRemembered();
+  render();
+  refresh();
+}
+
+function saveIfRemembered() {
+  try {
+    if ($('remember').checked)
+      localStorage.setItem(STORE_KEY, JSON.stringify({ids: $('ids').value, rpc: $('rpc').value, interval: $('interval').value, all: $('allTokens').checked}));
+    else localStorage.removeItem(STORE_KEY);
+  } catch (e) { /* storage blocked: memory only */ }
+}
+
+// ---------- views ----------
+function table(head, rows, right) {
+  return '<div class="scroll"><table><thead><tr>' +
+    head.map((h, i) => '<th' + (right.includes(i) ? ' class="n"' : '') + '>' + esc(h) + '</th>').join('') +
+    '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+}
+const cell = (v, c) => '<td' + (c ? ' class="' + c + '"' : '') + '>' + v + '</td>';
+const issuerCell = (issuer) => isSc(issuer) ? '<span class="sc">SC share</span>' : '<span class="id">' + esc(shortId(issuer)) + '</span>';
+const visibleChanged = (i) => (S.lastChanges[i] || []).some((c) => !c.asset || shown(c.issuer));
+const haveBase = () => S.targets.map((_, i) => !!(S.base[i] && S.base[i].ok && S.last[i] && S.last[i].ok));
+function sharesDelta(now, base) {
+  const d = now.owned - base.owned, p = now.possessed - base.possessed;
+  if (d) return {text: fmtD(d), c: cls(d)};
+  if (p) return {text: 'possessed ' + fmtD(p), c: cls(p)};
+  return {text: '', c: ''};
+}
+const order = (a, b) => (isSc(a.issuer) !== isSc(b.issuer) ? (isSc(a.issuer) ? -1 : 1) : a.name.localeCompare(b.name));
+
+function viewSummary() {
+  let total = 0, totalDelta = 0, ok = 0;
+  const hb = haveBase();
+  const rows = S.targets.map((t, i) => {
+    const d = S.last[i], err = S.err[i], ch = visibleChanged(i);
+    const status = err ? '<span class="badge down">' + (d && d.ok ? 'stale' : 'error') + '</span> <span class="err">' + esc(err) + '</span>'
+      : !d ? '<span class="hint">loading…</span>' : ch ? '<span class="badge" style="color:var(--warn)">changed</span>' : '<span class="badge up">ok</span>';
+    if (!d || !d.ok) return '<tr>' + cell(i + 1) + cell(esc(t.label)) + cell(esc(shortId(t.id)), 'id') + cell('-', 'n') + cell('', 'n') + cell('', 'n') + cell('', 'n') + cell(status) + '</tr>';
+    ok++; total += d.balance;
+    const delta = hb[i] ? d.balance - S.base[i].balance : 0; totalDelta += delta;
+    const mv = S.lastMove[i];
+    const nAssets = Object.values(d.assets).filter((h) => shown(h.issuer)).length;
+    return '<tr' + (ch ? ' class="changed"' : '') + '>' + cell(i + 1) + cell(esc(t.label)) + cell(esc(shortId(t.id)), 'id') +
+      cell(fmt(d.balance), 'n') + cell(delta ? fmtD(delta) : '', 'n ' + cls(delta)) +
+      cell(mv ? fmtD(mv.delta) + ' at ' + mv.time : '', 'n ' + (mv ? cls(mv.delta) : '')) + cell(nAssets, 'n') + cell(status) + '</tr>';
+  });
+  rows.push('<tr class="total">' + cell('') + cell('TOTAL') + cell(ok + '/' + S.targets.length + ' IDs') + cell(fmt(total), 'n') +
+    cell(totalDelta ? fmtD(totalDelta) : '', 'n ' + cls(totalDelta)) + cell('') + cell('') + cell('') + '</tr>');
+  // Same data as cards for narrow screens
+  const cards = S.targets.map((t, i) => {
+    const d = S.last[i], err = S.err[i], ch = visibleChanged(i), mv = S.lastMove[i];
+    const delta = d && d.ok && hb[i] ? d.balance - S.base[i].balance : 0;
+    const st = err ? '<span class="badge down">' + (d && d.ok ? 'stale' : 'error') + '</span>'
+      : !d ? '<span class="hint">loading…</span>' : ch ? '<span class="badge" style="color:var(--warn)">changed</span>' : '<span class="badge up">ok</span>';
+    const nAssets = d && d.ok ? Object.values(d.assets).filter((h) => shown(h.issuer)).length : 0;
+    return '<div class="card' + (ch ? ' changed' : '') + '"><div class="top"><span><b>' + esc(t.label) + '</b> <span class="id hint">' +
+      esc(shortId(t.id)) + '</span></span>' + st + '</div>' +
+      '<div class="bal">' + (d && d.ok ? fmt(d.balance) + ' <span class="hint">QU</span>' : '-') + '</div>' +
+      '<div class="meta">' + (delta ? '<span>since start <b class="' + cls(delta) + '">' + fmtD(delta) + '</b></span>' : '') +
+      (mv ? '<span>last move <b class="' + cls(mv.delta) + '">' + fmtD(mv.delta) + '</b> at ' + mv.time + '</span>' : '') +
+      (d && d.ok ? '<span>' + nAssets + ($('allTokens').checked ? ' tokens' : ' SC shares') + '</span>' : '') +
+      (err ? '<span class="err">' + esc(err) + '</span>' : '') + '</div></div>';
+  }).join('');
+  return '<div class="kpis"><div class="kpi"><div class="l">Total QU</div><div class="v">' + fmt(total) + '</div></div>' +
+    '<div class="kpi"><div class="l">Since start</div><div class="v ' + cls(totalDelta) + '">' + (totalDelta ? fmtD(totalDelta) : '0') + '</div></div>' +
+    '<div class="kpi"><div class="l">IDs ok</div><div class="v">' + ok + '/' + S.targets.length + '</div></div></div>' +
+    '<div class="cards">' + cards + '</div><div class="wide-only">' +
+    table(['#', 'Label', 'ID', 'Balance (QU)', 'Since start', 'Last QU move', $('allTokens').checked ? 'Tokens' : 'SC shares', 'Status'], rows, [3, 4, 5, 6]) +
+    '</div>';
+}
+
+function hiddenNote(n) {
+  return n ? '<p class="hint">' + n + ' other token' + (n > 1 ? 's' : '') + ' hidden: tick “All tokens” to show.</p>' : '';
+}
+
+function viewShares() {
+  const hb = haveBase(), rows = [], hidden = new Set();
+  S.targets.forEach((t, i) => {
+    if ((S.sel >= 0 && S.sel !== i) || !S.last[i] || !S.last[i].ok) return;
+    const all = Object.assign({}, hb[i] ? S.base[i].assets : {}, S.last[i].assets);
+    Object.values(all).sort(order).forEach((x) => {
+      const k = key(x.name, x.issuer);
+      if (!shown(x.issuer)) { hidden.add(k); return; }
+      const h = S.last[i].assets[k] || {owned: 0, possessed: 0, contracts: []};
+      const dl = hb[i] ? sharesDelta(h, S.base[i].assets[k] || {owned: 0, possessed: 0}) : {text: '', c: ''};
+      rows.push('<tr>' + cell(i + 1) + cell(esc(t.label)) + cell(esc(x.name), isSc(x.issuer) ? 'sc' : '') + cell(issuerCell(x.issuer)) +
+        cell(fmt(h.owned), 'n') + cell(fmt(h.possessed), 'n') + cell(dl.text, 'n ' + dl.c) + cell(esc(contractText(h.contracts))) + '</tr>');
+    });
+  });
+  const title = ($('allTokens').checked ? 'Shares and tokens' : 'SC shares') + (S.sel >= 0 ? ' of ' + esc(S.targets[S.sel].label) : ' per ID');
+  if (!rows.length) return '<h2>' + title + '</h2><div class="panel empty">None held (yet).</div>' + hiddenNote(hidden.size);
+  return '<h2>' + title + '</h2>' + table(['#', 'Label', 'Asset', 'Issuer', 'Owned', 'Possessed', 'Since start', 'Managed by'], rows, [4, 5, 6]) + hiddenNote(hidden.size);
+}
+
+function viewTotals() {
+  const hb = haveBase();
+  const cur = totals(S.last), curB = totals(S.last, hb), base = totals(S.base, hb);
+  const all = Object.assign({}, base.assets, cur.assets), rows = [], hidden = new Set();
+  Object.values(all).sort(order).forEach((x) => {
+    const k = key(x.name, x.issuer);
+    if (!shown(x.issuer)) { hidden.add(k); return; }
+    const h = cur.assets[k] || {owned: 0, possessed: 0, contracts: []};
+    const dl = sharesDelta(curB.assets[k] || {owned: 0, possessed: 0}, base.assets[k] || {owned: 0, possessed: 0});
+    rows.push('<tr>' + cell(esc(x.name), isSc(x.issuer) ? 'sc' : '') + cell(issuerCell(x.issuer)) + cell(fmt(h.owned), 'n') +
+      cell(fmt(h.possessed), 'n') + cell(dl.text, 'n ' + dl.c) + cell(cur.holders[k] || 0, 'n') + cell(esc(contractText(h.contracts))) + '</tr>');
+  });
+  const qd = curB.balance - base.balance;
+  return '<div class="kpis"><div class="kpi"><div class="l">Total QU, all IDs</div><div class="v">' + fmt(cur.balance) + '</div></div>' +
+    '<div class="kpi"><div class="l">Since start</div><div class="v ' + cls(qd) + '">' + (qd ? fmtD(qd) : '0') + '</div></div>' +
+    '<div class="kpi"><div class="l">IDs</div><div class="v">' + cur.ids + '/' + S.targets.length + '</div></div></div>' +
+    '<h2>' + ($('allTokens').checked ? 'Shares and tokens, all IDs' : 'SC shares, all IDs') + '</h2>' +
+    (rows.length ? table(['Asset', 'Issuer', 'Owned', 'Possessed', 'Since start', 'Holders', 'Managed by'], rows, [2, 3, 4, 5]) : '<div class="panel empty">None.</div>') +
+    hiddenNote(hidden.size);
+}
+
+function viewChanges() {
+  const rows = [], hidden = new Set();
+  for (const e of S.events) {
+    if (S.sel >= 0 && e.id !== S.targets[S.sel].id) continue;
+    const c = e.c;
+    if (c.asset && !shown(c.issuer)) { hidden.add(key(c.asset, c.issuer)); continue; }
+    let what = c.asset ? esc(c.asset) + (isSc(c.issuer) ? '' : ' <span class="id">(' + esc(shortId(c.issuer)) + ')</span>') : 'QU';
+    let change = fmtD(c.delta), val = fmt(c.value);
+    if (c.asset && !c.delta) { change = 'possessed ' + fmtD(c.pd); val = 'possessed ' + fmt(c.pv); }
+    else if (c.asset && c.pd !== c.delta) change += ' (possessed ' + fmtD(c.pd) + ')';
+    rows.push('<tr>' + cell(e.time) + cell(esc(e.label)) + cell(esc(shortId(e.id)), 'id') + cell(what) +
+      cell(change, 'n ' + cls(c.delta || c.pd)) + cell(val, 'n') + '</tr>');
+  }
+  if (!rows.length) return '<div class="panel empty">No change seen yet. Each refresh is compared with the previous one.</div>' + hiddenNote(hidden.size);
+  return table(['Time', 'Label', 'ID', 'What', 'Change', 'Now'], rows, [4, 5]) + hiddenNote(hidden.size);
+}
+
+function render() {
+  // header
+  let st = S.targets.length ? S.targets.length + ' IDs' : 'no IDs';
+  if (S.updated) st += ' · updated ' + S.updated + ' (' + S.took.toFixed(1) + ' s)';
+  if (S.busy) st += ' · refreshing…';
+  else if (S.nextAt) st += ' · next in ' + Math.max(0, Math.round((S.nextAt - Date.now()) / 1000)) + ' s';
+  $('state').textContent = st;
+  $('refresh').disabled = S.busy || !S.targets.length;
+  $('listTitle').textContent = 'Watch list (' + S.targets.length + ' IDs)';
+  $('warnings').innerHTML = S.warnings.map((w) => '<div class="warn">! ' + esc(w) + '</div>').join('');
+  document.title = (S.unseen ? '(' + S.unseen + ') ' : '') + 'Qubic Wallet Monitor';
+
+  // ID filter
+  const f = $('filter'), want = ['-1', ...S.targets.map((_, i) => String(i))];
+  if (f.options.length !== want.length || [...f.options].some((o, i) => o.value !== want[i])) {
+    f.innerHTML = '<option value="-1">All IDs</option>' + S.targets.map((t, i) => '<option value="' + i + '">' + esc(t.label) + ' · ' + esc(shortId(t.id)) + '</option>').join('');
+  }
+  f.value = String(S.sel);
+
+  document.querySelectorAll('nav .tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === S.tab));
+  if (!S.targets.length) {
+    $('view').innerHTML = '<div class="panel empty">Open <b>Watch list</b> above, paste IDs (or load a .txt file) and press Apply.</div>';
+    return;
+  }
+  const v = {summary: viewSummary, shares: viewShares, totals: viewTotals, changes: viewChanges}[S.tab];
+  $('view').innerHTML = v() + '<p class="hint">since start = since ' + esc(S.baseTime) + '</p>';
+}
+
+// ---------- events ----------
+$('apply').onclick = () => applyList($('ids').value);
+$('pickFile').onclick = () => $('file').click();
+$('file').onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 1 << 20) { S.warnings = ['file too large (max 1 MB)']; return render(); }
+  $('ids').value = await file.text();
+  e.target.value = '';
+  applyList($('ids').value);
+};
+$('copyLink').onclick = async () => {
+  // The list goes in the #fragment: browsers never send it to a server
+  const url = location.href.split('#')[0] + '#ids=' + encodeURIComponent($('ids').value.trim());
+  try { await navigator.clipboard.writeText(url); $('copyLink').textContent = 'Link copied'; }
+  catch (e) { prompt('Copy this link:', url); }
+  setTimeout(() => { $('copyLink').textContent = 'Copy link with list'; }, 2000);
+};
+$('remember').onchange = saveIfRemembered;
+$('allTokens').onchange = () => { saveIfRemembered(); render(); };
+$('interval').onchange = () => { saveIfRemembered(); schedule(); render(); };
+$('rpc').onchange = saveIfRemembered;
+$('refresh').onclick = refresh;
+$('reset').onclick = () => {
+  S.base = S.last.slice(); S.lastMove = S.targets.map(() => undefined); S.lastChanges = S.targets.map(() => []);
+  S.events = []; S.unseen = 0; S.baseTime = now(); render();
+};
+$('filter').onchange = (e) => { S.sel = Number(e.target.value); render(); };
+document.querySelectorAll('nav .tab').forEach((b) => { b.onclick = () => { S.tab = b.dataset.tab; render(); }; });
+$('testRpc').onclick = async () => {
+  $('rpcResult').innerHTML = '<span class="hint">testing…</span>';
+  try {
+    const t0 = performance.now(), ti = await fetchTick();
+    $('rpcResult').innerHTML = '<span class="up">OK: tick ' + fmt(ti.tick) + ', epoch ' + ti.epoch + ' (' + Math.round(performance.now() - t0) + ' ms)</span>';
+  } catch (e) { $('rpcResult').innerHTML = '<span class="err">' + esc(e.message) + '</span>'; }
+};
+// Timers sleep in background tabs (iOS): catch up when the page is shown again
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  S.unseen = 0;
+  if (S.nextAt && Date.now() >= S.nextAt) refresh();
+  render();
+});
+setInterval(() => { if (!document.hidden) render(); }, 1000);
+
+// ---------- start ----------
+(function start() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { saved = null; }
+  if (saved) {
+    $('remember').checked = true;
+    if (saved.rpc) $('rpc').value = saved.rpc;
+    if (saved.interval !== undefined) $('interval').value = saved.interval;
+    $('allTokens').checked = !!saved.all;
+  }
+  const q = new URLSearchParams(location.search);
+  if (q.get('rpc')) $('rpc').value = q.get('rpc');
+  const m = location.hash.match(/^#ids=(.*)$/);
+  const text = m ? decodeURIComponent(m[1]) : saved ? saved.ids : '';
+  $('ids').value = text || '';
+  if (text) applyList(text, true);
+  else { $('listBox').open = true; render(); }
+})();
+</script>
+</body>
+</html>
