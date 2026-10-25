@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-title" content="Qubic Wallet Monitor">
 <meta name="theme-color" content="#0f1419">
 <title>Qubic Wallet Monitor</title>
+<!-- Icon: Q ring with a pulse line (tab: SVG; iPhone home screen: 180x180 PNG) -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%230f1419%22%2F%3E%3Ccircle%20cx%3D%2229%22%20cy%3D%2229%22%20r%3D%2215%22%20fill%3D%22none%22%20stroke%3D%22%2338bdf8%22%20stroke-width%3D%226%22%2F%3E%3Cpath%20d%3D%22M39%2039l11%2011%22%20stroke%3D%22%2338bdf8%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%2F%3E%3Cpath%20d%3D%22M17%2030h5l3-6%205%2011%203-5h5%22%20fill%3D%22none%22%20stroke%3D%22%233ecf8e%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E">
+<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,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">
 <style>
 :root {
   color-scheme: light dark;
@@ -28,6 +31,10 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -ap
 .wrap { max-width: 1100px; margin: 0 auto; padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); }
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 12px; }
 header h1 { font-size: 18px; margin: 0; flex: 1 1 auto; }
+header .status { flex: 1 1 100%; }
+details.cfg { margin-bottom: 10px; }
+details.cfg > summary { font-size: 13px; color: var(--muted); padding: 2px 0; list-style-position: inside; }
+details.cfg[open] > summary { margin-bottom: 6px; color: var(--text); }
 .pill { font-size: 13px; color: var(--muted); }
 .pill b { color: var(--text); font-weight: 600; }
 button, select, input[type=text], textarea {
@@ -68,16 +75,38 @@ h2 { font-size: 15px; margin: 14px 0 8px; }
 .kpi .v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .kpi .l { font-size: 12px; color: var(--muted); }
 footer { margin-top: 16px; }
-.cards { display: none; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+a.idlink { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+a.idlink:hover { color: var(--accent); }
+button.ren { border: 0; background: none; padding: 0 4px; color: var(--muted); font-size: 13px; cursor: pointer; }
+button.ren:hover { color: var(--accent); }
+/* Phone list: one compact two-line row per ID (about 12 rows on an iPhone screen) */
+.cards { display: none; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.card { padding: 3px 10px; border-bottom: 1px solid var(--line); font-size: 13px; line-height: 1.28; }
+.card:last-child { border-bottom: 0; }
 .card.changed { background: var(--changed); }
-.card .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-.card .bal { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.card .meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); margin-top: 4px; }
+.card .top, .card .meta { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.card .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.card .bal { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.card .meta { font-size: 11px; color: var(--muted); }
+.card .meta .id { font-size: 11px; }
 .card .meta b { font-weight: 600; }
-.card.total { border-width: 2px; }
+.card .badge { font-size: 10px; padding: 0 5px; line-height: 1.3; }
+.card .ren { font-size: 12px; padding: 0 2px; }
 /* Phones: Summary as cards, the wide table stays for the other views */
 @media (max-width: 640px) {
+  body { font-size: 14px; }
+  .wrap { padding-top: 8px; }
+  header { margin-bottom: 8px; gap: 4px 10px; }
+  header h1 { font-size: 16px; }
+  .panel { padding: 8px 10px; margin-bottom: 8px; }
+  .row { margin-top: 6px; }
+  button { padding: 5px 10px; }
+  nav { gap: 4px; margin-bottom: 6px; }
+  header .status { font-size: 12px; }
+  .kpis { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; }
+  .kpi { padding: 3px 8px; }
+  .kpi .v { font-size: 15px; }
+  .kpi .l { font-size: 11px; }
   .cards { display: block; }
   .wide-only { display: none; }
 }
@@ -87,14 +116,15 @@ footer { margin-top: 16px; }
 <div class="wrap">
   <header>
     <h1>Qubic Wallet Monitor</h1>
-    <span class="pill">Tick <b id="tick">-</b> · Epoch <b id="epoch">-</b></span>
-    <span class="pill" id="state">not loaded</span>
     <button class="primary" id="refresh">Refresh</button>
+    <div class="pill status">Tick <b id="tick">-</b> · Ep <b id="epoch">-</b> · <span id="state">not loaded</span></div>
   </header>
 
-  <div class="panel">
-    <details id="listBox">
-      <summary id="listTitle">Watch list</summary>
+  <!-- Settings: set once, so folded into one small line until clicked -->
+  <details id="cfgBox" class="cfg">
+    <summary id="cfgTitle">⚙ Settings</summary>
+    <div class="panel">
+      <h2 style="margin-top:0">Watch list</h2>
       <p class="hint">One ID per line with an optional label after it, or <code>label = ID</code>; <code>#</code> starts a comment. Public IDs only, never a seed.</p>
       <textarea id="ids" spellcheck="false" autocapitalize="characters" autocomplete="off" placeholder="# my watch list&#10;&lt;60-letter ID&gt;  main&#10;cold = &lt;60-letter ID&gt;"></textarea>
       <div class="row">
@@ -105,11 +135,12 @@ footer { margin-top: 16px; }
         <label><input type="checkbox" id="remember"> Remember on this device</label>
       </div>
       <div id="warnings"></div>
-    </details>
+    <h2>Options</h2>
     <div class="row">
       <label>Every <select id="interval">
         <option value="30">30 s</option><option value="60" selected>1 min</option><option value="120">2 min</option>
-        <option value="300">5 min</option><option value="0">off</option></select></label>
+        <option value="300">5 min</option><option value="600">10 min</option><option value="900">15 min</option>
+        <option value="0">off</option></select></label>
       <label><input type="checkbox" id="allTokens"> All tokens (not only SC shares)</label>
       <button id="reset">Reset changes</button>
     </div>
@@ -122,7 +153,8 @@ footer { margin-top: 16px; }
       <p class="hint">Uses <code>/v1/tick-info</code>, <code>/v1/balances/{id}</code>, <code>/v1/assets/{id}/owned</code> and <code>/possessed</code>. Each refresh sends every ID in the list to this server.</p>
       <div id="rpcResult"></div>
     </details>
-  </div>
+    </div>
+  </details>
 
   <nav>
     <button class="tab on" data-tab="summary">Summary</button>
@@ -320,7 +352,7 @@ function schedule() {
 function applyList(text, quiet) {
   const {targets, warnings} = parseList(text);
   S.warnings = warnings;
-  if (!targets.length) { render(); if (!quiet) $('listBox').open = true; return; }
+  if (!targets.length) { render(); if (!quiet) $('cfgBox').open = true; return; }
   // Keep data of IDs still listed
   const old = new Map(S.targets.map((t, i) => [t.id, i]));
   const pick = (arr, i) => (old.has(targets[i].id) ? arr[old.get(targets[i].id)] : undefined);
@@ -331,7 +363,7 @@ function applyList(text, quiet) {
   S.lastChanges = targets.map(() => []);
   if (!S.baseTime) S.baseTime = now();
   S.sel = -1;
-  $('listBox').open = false;
+  $('cfgBox').open = false;
   saveIfRemembered();
   render();
   refresh();
@@ -352,7 +384,13 @@ function table(head, rows, right) {
     '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
 }
 const cell = (v, c) => '<td' + (c ? ' class="' + c + '"' : '') + '>' + v + '</td>';
-const issuerCell = (issuer) => isSc(issuer) ? '<span class="sc">SC share</span>' : '<span class="id">' + esc(shortId(issuer)) + '</span>';
+const EXPLORER = 'https://explorer.qubic.org/network/address/';
+// ID shown short, linked to the explorer in a new tab
+const idLink = (id, extra) => '<a class="idlink id' + (extra ? ' ' + extra : '') + '" href="' + EXPLORER + encodeURIComponent(id) +
+  '" target="_blank" rel="noopener noreferrer" title="' + esc(id) + ' (open in Qubic explorer)">' + esc(shortId(id)) + '</a>';
+const renBtn = (i) => '<button class="ren" data-ren="' + i + '" title="Rename" aria-label="Rename">✎</button>';
+const labelOf = (id, fallback) => { const t = S.targets.find((x) => x.id === id); return t ? t.label : fallback; };
+const issuerCell = (issuer) => isSc(issuer) ? '<span class="sc">SC share</span>' : idLink(issuer);
 const visibleChanged = (i) => (S.lastChanges[i] || []).some((c) => !c.asset || shown(c.issuer));
 const haveBase = () => S.targets.map((_, i) => !!(S.base[i] && S.base[i].ok && S.last[i] && S.last[i].ok));
 function sharesDelta(now, base) {
@@ -370,12 +408,12 @@ function viewSummary() {
     const d = S.last[i], err = S.err[i], ch = visibleChanged(i);
     const status = err ? '<span class="badge down">' + (d && d.ok ? 'stale' : 'error') + '</span> <span class="err">' + esc(err) + '</span>'
       : !d ? '<span class="hint">loading…</span>' : ch ? '<span class="badge" style="color:var(--warn)">changed</span>' : '<span class="badge up">ok</span>';
-    if (!d || !d.ok) return '<tr>' + cell(i + 1) + cell(esc(t.label)) + cell(esc(shortId(t.id)), 'id') + cell('-', 'n') + cell('', 'n') + cell('', 'n') + cell('', 'n') + cell(status) + '</tr>';
+    if (!d || !d.ok) return '<tr>' + cell(i + 1) + cell(esc(t.label) + renBtn(i)) + cell(idLink(t.id)) + cell('-', 'n') + cell('', 'n') + cell('', 'n') + cell('', 'n') + cell(status) + '</tr>';
     ok++; total += d.balance;
     const delta = hb[i] ? d.balance - S.base[i].balance : 0; totalDelta += delta;
     const mv = S.lastMove[i];
     const nAssets = Object.values(d.assets).filter((h) => shown(h.issuer)).length;
-    return '<tr' + (ch ? ' class="changed"' : '') + '>' + cell(i + 1) + cell(esc(t.label)) + cell(esc(shortId(t.id)), 'id') +
+    return '<tr' + (ch ? ' class="changed"' : '') + '>' + cell(i + 1) + cell(esc(t.label) + renBtn(i)) + cell(idLink(t.id)) +
       cell(fmt(d.balance), 'n') + cell(delta ? fmtD(delta) : '', 'n ' + cls(delta)) +
       cell(mv ? fmtD(mv.delta) + ' at ' + mv.time : '', 'n ' + (mv ? cls(mv.delta) : '')) + cell(nAssets, 'n') + cell(status) + '</tr>';
   });
@@ -388,13 +426,14 @@ function viewSummary() {
     const st = err ? '<span class="badge down">' + (d && d.ok ? 'stale' : 'error') + '</span>'
       : !d ? '<span class="hint">loading…</span>' : ch ? '<span class="badge" style="color:var(--warn)">changed</span>' : '<span class="badge up">ok</span>';
     const nAssets = d && d.ok ? Object.values(d.assets).filter((h) => shown(h.issuer)).length : 0;
-    return '<div class="card' + (ch ? ' changed' : '') + '"><div class="top"><span><b>' + esc(t.label) + '</b> <span class="id hint">' +
-      esc(shortId(t.id)) + '</span></span>' + st + '</div>' +
-      '<div class="bal">' + (d && d.ok ? fmt(d.balance) + ' <span class="hint">QU</span>' : '-') + '</div>' +
-      '<div class="meta">' + (delta ? '<span>since start <b class="' + cls(delta) + '">' + fmtD(delta) + '</b></span>' : '') +
-      (mv ? '<span>last move <b class="' + cls(mv.delta) + '">' + fmtD(mv.delta) + '</b> at ' + mv.time + '</span>' : '') +
-      (d && d.ok ? '<span>' + nAssets + ($('allTokens').checked ? ' tokens' : ' SC shares') + '</span>' : '') +
-      (err ? '<span class="err">' + esc(err) + '</span>' : '') + '</div></div>';
+    // Line 1: name, balance. Line 2: ID link, changes / error, status
+    const info = err ? '<span class="err">' + esc(err) + '</span>'
+      : (delta ? '<b class="' + cls(delta) + '">' + fmtD(delta) + '</b> ' : '') +
+        (mv ? 'last <b class="' + cls(mv.delta) + '">' + fmtD(mv.delta) + '</b> ' + mv.time.slice(0, 5) + ' ' : '') +
+        (d && d.ok ? nAssets + ($('allTokens').checked ? ' tok' : ' SC') : '');
+    return '<div class="card' + (ch ? ' changed' : '') + '"><div class="top"><span class="nm"><b>' + esc(t.label) + '</b>' + renBtn(i) +
+      '</span><span class="bal">' + (d && d.ok ? fmt(d.balance) : '-') + '</span></div>' +
+      '<div class="meta"><span class="nm">' + idLink(t.id) + ' ' + info + '</span>' + st + '</div></div>';
   }).join('');
   return '<div class="kpis"><div class="kpi"><div class="l">Total QU</div><div class="v">' + fmt(total) + '</div></div>' +
     '<div class="kpi"><div class="l">Since start</div><div class="v ' + cls(totalDelta) + '">' + (totalDelta ? fmtD(totalDelta) : '0') + '</div></div>' +
@@ -418,7 +457,7 @@ function viewShares() {
       if (!shown(x.issuer)) { hidden.add(k); return; }
       const h = S.last[i].assets[k] || {owned: 0, possessed: 0, contracts: []};
       const dl = hb[i] ? sharesDelta(h, S.base[i].assets[k] || {owned: 0, possessed: 0}) : {text: '', c: ''};
-      rows.push('<tr>' + cell(i + 1) + cell(esc(t.label)) + cell(esc(x.name), isSc(x.issuer) ? 'sc' : '') + cell(issuerCell(x.issuer)) +
+      rows.push('<tr>' + cell(i + 1) + cell(esc(t.label) + ' ' + idLink(t.id, 'hint')) + cell(esc(x.name), isSc(x.issuer) ? 'sc' : '') + cell(issuerCell(x.issuer)) +
         cell(fmt(h.owned), 'n') + cell(fmt(h.possessed), 'n') + cell(dl.text, 'n ' + dl.c) + cell(esc(contractText(h.contracts))) + '</tr>');
     });
   });
@@ -454,11 +493,11 @@ function viewChanges() {
     if (S.sel >= 0 && e.id !== S.targets[S.sel].id) continue;
     const c = e.c;
     if (c.asset && !shown(c.issuer)) { hidden.add(key(c.asset, c.issuer)); continue; }
-    let what = c.asset ? esc(c.asset) + (isSc(c.issuer) ? '' : ' <span class="id">(' + esc(shortId(c.issuer)) + ')</span>') : 'QU';
+    let what = c.asset ? esc(c.asset) + (isSc(c.issuer) ? '' : ' (' + idLink(c.issuer) + ')') : 'QU';
     let change = fmtD(c.delta), val = fmt(c.value);
     if (c.asset && !c.delta) { change = 'possessed ' + fmtD(c.pd); val = 'possessed ' + fmt(c.pv); }
     else if (c.asset && c.pd !== c.delta) change += ' (possessed ' + fmtD(c.pd) + ')';
-    rows.push('<tr>' + cell(e.time) + cell(esc(e.label)) + cell(esc(shortId(e.id)), 'id') + cell(what) +
+    rows.push('<tr>' + cell(e.time) + cell(esc(labelOf(e.id, e.label))) + cell(idLink(e.id)) + cell(what) +
       cell(change, 'n ' + cls(c.delta || c.pd)) + cell(val, 'n') + '</tr>');
   }
   if (!rows.length) return '<div class="panel empty">No change seen yet. Each refresh is compared with the previous one.</div>' + hiddenNote(hidden.size);
@@ -467,26 +506,28 @@ function viewChanges() {
 
 function render() {
   // header
-  let st = S.targets.length ? S.targets.length + ' IDs' : 'no IDs';
-  if (S.updated) st += ' · updated ' + S.updated + ' (' + S.took.toFixed(1) + ' s)';
+  let st = !S.targets.length ? 'no IDs' : S.updated ? 'updated ' + S.updated : 'loading';
+  $('state').title = S.updated ? 'last refresh took ' + S.took.toFixed(1) + ' s' : '';
   if (S.busy) st += ' · refreshing…';
   else if (S.nextAt) st += ' · next in ' + Math.max(0, Math.round((S.nextAt - Date.now()) / 1000)) + ' s';
   $('state').textContent = st;
   $('refresh').disabled = S.busy || !S.targets.length;
-  $('listTitle').textContent = 'Watch list (' + S.targets.length + ' IDs)';
+  const every = $('interval').selectedOptions[0].text;
+  $('cfgTitle').textContent = '⚙ ' + S.targets.length + ' IDs · ' + (every === 'off' ? 'auto refresh off' : 'every ' + every) +
+    ' · ' + ($('allTokens').checked ? 'all tokens' : 'SC shares only') + (S.warnings.length ? ' · ' + S.warnings.length + ' lines skipped' : '');
   $('warnings').innerHTML = S.warnings.map((w) => '<div class="warn">! ' + esc(w) + '</div>').join('');
   document.title = (S.unseen ? '(' + S.unseen + ') ' : '') + 'Qubic Wallet Monitor';
 
   // ID filter
   const f = $('filter'), want = ['-1', ...S.targets.map((_, i) => String(i))];
-  if (f.options.length !== want.length || [...f.options].some((o, i) => o.value !== want[i])) {
-    f.innerHTML = '<option value="-1">All IDs</option>' + S.targets.map((t, i) => '<option value="' + i + '">' + esc(t.label) + ' · ' + esc(shortId(t.id)) + '</option>').join('');
-  }
+  const opts = '<option value="-1">All IDs</option>' + S.targets.map((t, i) => '<option value="' + i + '">' + esc(t.label) + ' · ' + esc(shortId(t.id)) + '</option>').join('');
+  if (f.dataset.html !== opts) { f.innerHTML = opts; f.dataset.html = opts; }
   f.value = String(S.sel);
 
   document.querySelectorAll('nav .tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === S.tab));
+  f.hidden = S.tab === 'summary'; // Summary always lists every ID
   if (!S.targets.length) {
-    $('view').innerHTML = '<div class="panel empty">Open <b>Watch list</b> above, paste IDs (or load a .txt file) and press Apply.</div>';
+    $('view').innerHTML = '<div class="panel empty">Paste IDs in <b>Watch list</b> above (or load a .txt file) and press Apply.</div>';
     return;
   }
   const v = {summary: viewSummary, shares: viewShares, totals: viewTotals, changes: viewChanges}[S.tab];
@@ -521,6 +562,28 @@ $('reset').onclick = () => {
   S.events = []; S.unseen = 0; S.baseTime = now(); render();
 };
 $('filter').onchange = (e) => { S.sel = Number(e.target.value); render(); };
+// Rename: the new label is written back into the list text (so links and "Remember" keep it)
+$('view').addEventListener('click', (e) => {
+  const b = e.target.closest('button.ren');
+  if (!b) return;
+  const t = S.targets[Number(b.dataset.ren)];
+  if (!t) return;
+  const v = prompt('Name for ' + shortId(t.id) + ' (max 24 characters):', t.label);
+  if (v === null) return;
+  t.label = v.replace(/[#\r\n\t]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 24) || 'id' + (S.targets.indexOf(t) + 1);
+  let found = false;
+  const lines = $('ids').value.split(/\r?\n/).map((raw) => {
+    const one = parseList(raw).targets[0];
+    if (!one || one.id !== t.id) return raw;
+    found = true;
+    const comment = raw.indexOf('#') >= 0 ? '  ' + raw.slice(raw.indexOf('#')) : '';
+    return t.id + '  ' + t.label + comment;
+  });
+  if (!found) lines.push(t.id + '  ' + t.label);
+  $('ids').value = lines.join('\n');
+  saveIfRemembered();
+  render();
+});
 document.querySelectorAll('nav .tab').forEach((b) => { b.onclick = () => { S.tab = b.dataset.tab; render(); }; });
 $('testRpc').onclick = async () => {
   $('rpcResult').innerHTML = '<span class="hint">testing…</span>';
@@ -554,7 +617,7 @@ setInterval(() => { if (!document.hidden) render(); }, 1000);
   const text = m ? decodeURIComponent(m[1]) : saved ? saved.ids : '';
   $('ids').value = text || '';
   if (text) applyList(text, true);
-  else { $('listBox').open = true; render(); }
+  else { $('cfgBox').open = true; render(); }
 })();
 </script>
 </body>
