@@ -79,6 +79,12 @@ h2 { font-size: 15px; margin: 14px 0 8px; }
 .kpi.tap { cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; }
 .kpi.tap .l::after { content: ' ⇄'; color: var(--accent); }
 footer { margin-top: 16px; }
+dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px; width: min(460px, calc(100vw - 32px)); }
+dialog::backdrop { background: rgba(0, 0, 0, .55); }
+dialog input, #unlockKey { width: 100%; padding: 8px; font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; }
+dialog #linkOut { font: 12px var(--mono); }
 a.idlink { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
 a.idlink:hover { color: var(--accent); }
 button.ren { border: 0; background: none; padding: 0 4px; color: var(--muted); font-size: 13px; cursor: pointer; }
@@ -135,7 +141,7 @@ button.ren:hover { color: var(--accent); }
         <button class="primary" id="apply">Apply</button>
         <button id="pickFile">Load file…</button>
         <input type="file" id="file" accept=".txt,text/plain" hidden>
-        <button id="copyLink">Copy link with list</button>
+        <button id="copyLink">Copy link with list…</button>
         <label><input type="checkbox" id="remember"> Remember on this device</label>
       </div>
       <div id="warnings"></div>
@@ -159,6 +165,31 @@ button.ren:hover { color: var(--accent); }
     </details>
     </div>
   </details>
+
+  <!-- Copy link: choose encryption first; the link is copied by a separate tap (iOS needs a fresh gesture) -->
+  <dialog id="linkDlg">
+    <h2 style="margin-top:0">Copy link with list</h2>
+    <p class="hint">Encrypt the list (IDs and names) in the link? Opening an encrypted link asks for the passphrase.
+      AES-256-GCM, key from PBKDF2-SHA256 with 600,000 rounds. Anyone holding the link can try passphrases offline,
+      so use a long one.</p>
+    <div id="linkAsk">
+      <input type="password" id="linkKey" autocomplete="new-password" placeholder="Passphrase (8+ characters)">
+      <div id="linkErr" class="err"></div>
+      <div class="row">
+        <button class="primary" id="linkEnc">Encrypt</button>
+        <button id="linkPlain">Copy without encryption</button>
+        <button id="linkCancel">Cancel</button>
+      </div>
+    </div>
+    <div id="linkDone" hidden>
+      <input type="text" id="linkOut" readonly>
+      <div class="row">
+        <button class="primary" id="linkCopy">Copy</button>
+        <button id="linkClose">Close</button>
+        <span id="linkMsg" class="hint"></span>
+      </div>
+    </div>
+  </dialog>
 
   <nav>
     <button class="tab on" data-tab="summary">Summary</button>
@@ -191,6 +222,7 @@ const S = {
   events: [], warnings: [], busy: false, updated: '', took: 0, baseTime: '',
   tab: 'summary', sel: -1, unseen: 0, gen: 0, timer: null, nextAt: 0,
   price: null, priceSrc: '', unit: 'QU', // price: USD per 1 QU (shown as USDT)
+  locked: null, // #enc= token waiting for its passphrase
 };
 
 // ---------- helpers ----------
@@ -391,6 +423,62 @@ function schedule() {
   if (every && S.targets.length) S.timer = setTimeout(refresh, every * 1000);
 }
 
+// ---------- encrypted links: #enc=v1.<salt>.<iv>.<ciphertext> (base64url) ----------
+const ENC_ITER = 600000, MIN_LINK_KEY = 8;
+const b64uEnc = (buf) => {
+  let s = '';
+  for (const b of new Uint8Array(buf)) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+const b64uDec = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4)), (c) => c.charCodeAt(0));
+// Web Crypto only exists on HTTPS / localhost pages
+const canEncrypt = () => !!(window.crypto && crypto.subtle);
+
+async function linkKey(pass, salt) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name: 'PBKDF2', salt, iterations: ENC_ITER, hash: 'SHA-256'}, base,
+    {name: 'AES-GCM', length: 256}, false, ['encrypt', 'decrypt']);
+}
+
+async function encryptList(text, pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, await linkKey(pass, salt), new TextEncoder().encode(text));
+  return 'v1.' + b64uEnc(salt) + '.' + b64uEnc(iv) + '.' + b64uEnc(ct);
+}
+
+// Throws on a wrong passphrase or a damaged link (GCM tag check)
+async function decryptList(token, pass) {
+  const [v, salt, iv, ct] = token.split('.');
+  if (v !== 'v1' || !salt || !iv || !ct) throw new Error('damaged link');
+  const pt = await crypto.subtle.decrypt({name: 'AES-GCM', iv: b64uDec(iv)}, await linkKey(pass, b64uDec(salt)), b64uDec(ct));
+  return new TextDecoder().decode(pt);
+}
+
+function unlockPanel() {
+  return '<div class="panel"><h2 style="margin-top:0">Encrypted watch list</h2>' +
+    '<p class="hint">This link holds an encrypted list. Enter its passphrase; it is not stored.</p>' +
+    (canEncrypt() ? '<div class="row"><label class="grow"><input type="password" id="unlockKey" autocomplete="off" placeholder="Passphrase"></label>' +
+      '<button class="primary" id="unlockBtn">Unlock</button></div><div id="unlockErr" class="err"></div>'
+      : '<p class="err">Decryption needs the page on HTTPS (or localhost).</p>') + '</div>';
+}
+
+async function unlock() {
+  const key = $('unlockKey'), btn = $('unlockBtn'), err = $('unlockErr');
+  if (!key || !key.value) return;
+  btn.disabled = true; btn.textContent = 'Unlocking…'; err.textContent = '';
+  try {
+    const text = await decryptList(S.locked, key.value);
+    key.value = '';
+    S.locked = null;
+    $('ids').value = text;
+    applyList(text);
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Unlock';
+    err.textContent = 'Wrong passphrase or damaged link.';
+    key.select();
+  }
+}
+
 // ---------- list handling ----------
 function applyList(text, quiet) {
   const {targets, warnings} = parseList(text);
@@ -570,6 +658,13 @@ function render() {
 
   document.querySelectorAll('nav .tab').forEach((b) => b.classList.toggle('on', b.dataset.tab === S.tab));
   f.hidden = S.tab === 'summary'; // Summary always lists every ID
+  if (S.locked) {
+    if (!$('unlockKey') && !$('view').textContent.includes('Encrypted watch list')) {
+      $('view').innerHTML = unlockPanel();
+      if ($('unlockKey')) $('unlockKey').focus();
+    }
+    return;
+  }
   if (!S.targets.length) {
     $('view').innerHTML = '<div class="panel empty">Paste IDs in <b>Watch list</b> above (or load a .txt file) and press Apply.</div>';
     return;
@@ -589,12 +684,40 @@ $('file').onchange = async (e) => {
   e.target.value = '';
   applyList($('ids').value);
 };
-$('copyLink').onclick = async () => {
-  // The list goes in the #fragment: browsers never send it to a server
-  const url = location.href.split('#')[0] + '#ids=' + encodeURIComponent($('ids').value.trim());
-  try { await navigator.clipboard.writeText(url); $('copyLink').textContent = 'Link copied'; }
-  catch (e) { prompt('Copy this link:', url); }
-  setTimeout(() => { $('copyLink').textContent = 'Copy link with list'; }, 2000);
+// The list goes in the #fragment (never sent to a server), encrypted if the user picks a passphrase
+function showLink(frag) {
+  $('linkOut').value = location.href.split('#')[0] + frag;
+  $('linkAsk').hidden = true;
+  $('linkDone').hidden = false;
+  $('linkMsg').textContent = frag.startsWith('#enc=') ? 'encrypted' : 'not encrypted: the list is readable in the link';
+}
+function closeLinkDlg() {
+  $('linkKey').value = ''; $('linkOut').value = ''; $('linkErr').textContent = '';
+  $('linkDlg').close();
+}
+$('copyLink').onclick = () => {
+  if (!$('ids').value.trim()) return;
+  $('linkAsk').hidden = false; $('linkDone').hidden = true;
+  $('linkEnc').disabled = !canEncrypt();
+  $('linkErr').textContent = canEncrypt() ? '' : 'Encryption needs the page on HTTPS (or localhost).';
+  $('linkDlg').showModal();
+  $('linkKey').focus();
+};
+$('linkEnc').onclick = async () => {
+  const pass = $('linkKey').value;
+  if (pass.length < MIN_LINK_KEY) { $('linkErr').textContent = 'Passphrase: at least ' + MIN_LINK_KEY + ' characters.'; return; }
+  $('linkEnc').disabled = true; $('linkEnc').textContent = 'Encrypting…'; $('linkErr').textContent = '';
+  try { showLink('#enc=' + await encryptList($('ids').value.trim(), pass)); }
+  catch (e) { $('linkErr').textContent = 'Encryption failed: ' + e.message; }
+  finally { $('linkKey').value = ''; $('linkEnc').disabled = false; $('linkEnc').textContent = 'Encrypt'; }
+};
+$('linkKey').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('linkEnc').click(); });
+$('linkPlain').onclick = () => { $('linkKey').value = ''; showLink('#ids=' + encodeURIComponent($('ids').value.trim())); };
+$('linkCancel').onclick = closeLinkDlg;
+$('linkClose').onclick = closeLinkDlg;
+$('linkCopy').onclick = async () => {
+  try { await navigator.clipboard.writeText($('linkOut').value); $('linkMsg').textContent = 'copied'; }
+  catch (e) { $('linkOut').select(); $('linkMsg').textContent = 'select and copy by hand'; }
 };
 $('remember').onchange = saveIfRemembered;
 $('allTokens').onchange = () => { saveIfRemembered(); render(); };
@@ -607,7 +730,9 @@ $('reset').onclick = () => {
 };
 $('filter').onchange = (e) => { S.sel = Number(e.target.value); render(); };
 // Rename: the new label is written back into the list text (so links and "Remember" keep it)
+$('view').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'unlockKey') unlock(); });
 $('view').addEventListener('click', (e) => {
+  if (e.target.id === 'unlockBtn') return unlock();
   if (e.target.closest('[data-unit]')) {
     if (!(S.price > 0)) return; // no price yet: stay in QU
     S.unit = S.unit === 'QU' ? 'USDT' : 'QU';
@@ -650,6 +775,8 @@ document.addEventListener('visibilitychange', () => {
   render();
 });
 setInterval(() => { if (!document.hidden) render(); }, 1000);
+// A list link pasted into this same tab only changes the #fragment: load it as a fresh page
+window.addEventListener('hashchange', () => location.reload());
 
 // ---------- start ----------
 (function start() {
@@ -664,6 +791,8 @@ setInterval(() => { if (!document.hidden) render(); }, 1000);
   }
   const q = new URLSearchParams(location.search);
   if (q.get('rpc')) $('rpc').value = q.get('rpc');
+  const enc = location.hash.match(/^#enc=(.+)$/);
+  if (enc) { S.locked = enc[1]; render(); return; }
   const m = location.hash.match(/^#ids=(.*)$/);
   const text = m ? decodeURIComponent(m[1]) : saved ? saved.ids : '';
   $('ids').value = text || '';
