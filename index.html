@@ -31,7 +31,9 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 -ap
 .wrap { max-width: 1100px; margin: 0 auto; padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); }
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 12px; }
 header h1 { font-size: 18px; margin: 0; flex: 1 1 auto; }
-header .status { flex: 1 1 100%; }
+/* Status stays on one line; the countdown lives in the fixed-width Refresh button, so nothing reflows each second */
+header .status { flex: 1 1 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#refresh { min-width: 8.6em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 details.cfg { margin-bottom: 10px; }
 details.cfg > summary { font-size: 13px; color: var(--muted); padding: 2px 0; list-style-position: inside; }
 details.cfg[open] > summary { margin-bottom: 6px; color: var(--text); }
@@ -119,7 +121,7 @@ button.ren:hover { color: var(--accent); }
   <header>
     <h1>Qubic Wallet Monitor</h1>
     <button class="primary" id="refresh">Refresh</button>
-    <div class="pill status">Tick <b id="tick">-</b> · Ep <b id="epoch">-</b> · <span id="state">not loaded</span></div>
+    <div class="pill status">Tick <b id="tick">-</b> · Ep <b id="epoch">-</b> · <a id="price" class="idlink" href="https://www.gate.io/trade/QUBIC_USDT" target="_blank" rel="noopener noreferrer" title="QUBIC/USDT chart on Gate" hidden></a><span id="priceSep" hidden> · </span><span id="state">not loaded</span></div>
   </header>
 
   <!-- Settings: set once, so folded into one small line until clicked -->
@@ -546,10 +548,12 @@ function viewChanges() {
 function render() {
   // header
   let st = !S.targets.length ? 'no IDs' : S.updated ? S.updated : 'loading';
-  if (S.price > 0) st = fmtPriceB(S.price) + ' · ' + st;
+  // Price links to the QUBIC/USDT chart on Gate
+  $('price').hidden = $('priceSep').hidden = !(S.price > 0);
+  if (S.price > 0) $('price').textContent = fmtPriceB(S.price);
   $('state').title = S.updated ? 'last refresh took ' + S.took.toFixed(1) + ' s' : '';
-  if (S.busy) st += ' · refreshing…';
-  else if (S.nextAt) st += ' · next ' + Math.max(0, Math.round((S.nextAt - Date.now()) / 1000)) + 's';
+  $('refresh').textContent = S.busy ? 'Refreshing…'
+    : S.nextAt ? 'Refresh · ' + Math.max(0, Math.round((S.nextAt - Date.now()) / 1000)) + 's' : 'Refresh';
   $('state').textContent = st;
   $('refresh').disabled = S.busy || !S.targets.length;
   const every = $('interval').selectedOptions[0].text;
